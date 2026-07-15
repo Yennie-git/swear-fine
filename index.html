@@ -136,7 +136,11 @@ let syncing = false, pollTimer = null;
 const $ = s => document.querySelector(s);
 const won = n => n.toLocaleString('ko-KR') + '원';
 function toast(m){ const t=$('#toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2000); }
-function topicOf(code){ return 'swearfine-' + code.replace(/[^\w가-힣]/g,'').slice(0,48); }
+function topicOf(code){ // ntfy 토픽은 ASCII만 허용 → 방 이름을 결정적 해시로 변환
+  let h1=5381,h2=52711;
+  for(const ch of code.trim()){ const c=ch.codePointAt(0); h1=(Math.imul(h1,33) ^ c)>>>0; h2=(Math.imul(h2,33) ^ c)>>>0; }
+  return 'swearfine-' + h1.toString(36) + h2.toString(36);
+}
 function setDot(cls,text){ const d=$('#dot'); d.className='dot'+(cls?' '+cls:''); $('#statusText').textContent=text; }
 
 // ---- selection ----
