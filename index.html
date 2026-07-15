@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>욕 벌금 정산소</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+    background: #fff7f0; color: #3a2e28; min-height: 100vh; padding: 20px 16px 60px;
+  }
+  .wrap { max-width: 520px; margin: 0 auto; }
+  h1 { font-size: 26px; text-align: center; margin-bottom: 4px; }
+  .sub { text-align: center; color: #a08b7d; font-size: 13px; margin-bottom: 18px; }
+
+  .roombar { background:#fff; border-radius:14px; padding:12px 14px; margin-bottom:16px;
+    box-shadow:0 4px 14px rgba(160,120,90,.1); font-size:13px; }
+  .roombar .status { display:flex; align-items:center; gap:8px; }
+  .dot { width:9px; height:9px; border-radius:50%; background:#c3b3a5; flex:none; }
+  .dot.live { background:#3fbf6f; }
+  .dot.err { background:#e05a2b; }
+  .roombar .mini { color:#a08b7d; }
+  .roombar .acts { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; align-items:center; }
+  .roombar input { flex:1; min-width:130px; padding:9px 10px; border:2px solid #efe2d6;
+    border-radius:10px; font-size:13px; }
+  .sbtn { padding:9px 12px; border:none; border-radius:10px; background:#ff8a5c; color:#fff;
+    font-weight:700; font-size:13px; cursor:pointer; }
+  .sbtn.ghost { background:#f0e6dc; color:#7a6656; }
+  .code { font-weight:800; letter-spacing:.5px; color:#ff8a5c; }
+  .hint { color:#bcae; color:#c3b3a5; font-size:11.5px; margin-top:8px; line-height:1.5; }
+
+  .card { background:#fff; border-radius:18px; padding:20px;
+    box-shadow:0 4px 18px rgba(160,120,90,.12); margin-bottom:18px; }
+  .label { font-size:13px; color:#a08b7d; margin-bottom:8px; font-weight:600; }
+  .btn-row { display:flex; gap:10px; margin-bottom:18px; }
+  .opt { flex:1; padding:14px 8px; border:2px solid #efe2d6; border-radius:14px;
+    background:#fbf3ec; font-size:16px; font-weight:700; cursor:pointer; color:#7a6656; transition:all .12s; }
+  .opt.active { background:#ff8a5c; color:#fff; border-color:#ff8a5c; transform:translateY(-1px);
+    box-shadow:0 4px 10px rgba(255,138,92,.35); }
+  .opt.type.active { background:#7b6ef6; border-color:#7b6ef6; box-shadow:0 4px 10px rgba(123,110,246,.35); }
+  .submit { width:100%; padding:16px; border:none; border-radius:14px; background:#3a2e28; color:#fff;
+    font-size:17px; font-weight:800; cursor:pointer; }
+  .submit:disabled { background:#d9ccbf; cursor:not-allowed; }
+
+  .totals { display:flex; gap:12px; margin-bottom:18px; }
+  .total-box { flex:1; background:#fff; border-radius:16px; padding:16px; text-align:center;
+    box-shadow:0 4px 14px rgba(160,120,90,.1); }
+  .total-box .name { font-size:15px; font-weight:700; color:#7a6656; }
+  .total-box .amt { font-size:24px; font-weight:800; margin-top:4px; }
+  .total-box.mandu .amt { color:#ff8a5c; }
+  .total-box.jjinppang .amt { color:#7b6ef6; }
+
+  .chart { display:flex; align-items:flex-end; gap:24px; height:200px; padding:10px 20px 0; }
+  .bar-col { flex:1; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end; }
+  .bar-val { font-size:14px; font-weight:800; margin-bottom:6px; }
+  .bar { width:100%; max-width:90px; border-radius:12px 12px 0 0; min-height:4px; transition:height .4s ease; }
+  .bar.mandu { background:linear-gradient(#ffab86,#ff8a5c); }
+  .bar.jjinppang { background:linear-gradient(#a79dff,#7b6ef6); }
+  .bar-label { margin-top:8px; font-size:14px; font-weight:700; color:#7a6656; }
+
+  table { width:100%; border-collapse:collapse; font-size:13.5px; }
+  th,td { padding:10px 6px; text-align:left; border-bottom:1px solid #f0e6dc; }
+  th { color:#a08b7d; font-size:12px; }
+  td.amt, th.amt { text-align:right; font-weight:600; }
+  .tag { display:inline-block; padding:2px 8px; border-radius:8px; font-size:11px; font-weight:700; }
+  .tag.sang { background:#ffe6da; color:#e05a2b; }
+  .tag.back { background:#e6e2ff; color:#5a4fd0; }
+  .empty { text-align:center; color:#c3b3a5; padding:24px 0; }
+  .reset { display:block; margin:8px auto 0; background:none; border:none; color:#c3b3a5;
+    font-size:12px; cursor:pointer; text-decoration:underline; }
+  h2 { font-size:15px; margin-bottom:12px; color:#7a6656; }
+  .bun { display:inline-block; width:1.05em; height:1.05em; border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, #ffffff, #f1ebe1);
+    box-shadow:0 1px 2px rgba(0,0,0,.18), inset 0 -2px 3px rgba(0,0,0,.06); vertical-align:-0.15em; }
+  .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#3a2e28;
+    color:#fff; padding:10px 18px; border-radius:20px; font-size:13px; opacity:0; transition:opacity .2s; pointer-events:none; }
+  .toast.show { opacity:1; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🤬 욕 벌금 정산소</h1>
+  <div class="sub">만두 vs 찐빵 · 한 번에 1,000원</div>
+
+  <div class="roombar">
+    <div class="status"><span class="dot" id="dot"></span><span id="statusText">혼자 쓰는 중 (동기화 꺼짐)</span></div>
+    <div class="acts" id="roomActs"></div>
+    <div class="hint" id="roomHint"></div>
+  </div>
+
+  <div class="card">
+    <div class="label">누가?</div>
+    <div class="btn-row">
+      <button class="opt name" data-name="만두">🥟 만두</button>
+      <button class="opt name" data-name="찐빵"><span class="bun"></span> 찐빵</button>
+    </div>
+    <div class="label">무슨 욕?</div>
+    <div class="btn-row">
+      <button class="opt type" data-type="상스러운 말">상스러운 말</button>
+      <button class="opt type" data-type="뒷담">뒷담</button>
+    </div>
+    <button class="submit" id="submit" disabled>입력 (+1,000원)</button>
+  </div>
+
+  <div class="totals">
+    <div class="total-box mandu"><div class="name">🥟 만두</div><div class="amt" id="total-만두">0원</div></div>
+    <div class="total-box jjinppang"><div class="name"><span class="bun"></span> 찐빵</div><div class="amt" id="total-찐빵">0원</div></div>
+  </div>
+
+  <div class="card">
+    <h2>누적액 차트</h2>
+    <div class="chart" id="chart"></div>
+  </div>
+
+  <div class="card">
+    <h2>기록</h2>
+    <div id="log"></div>
+    <button class="reset" id="reset">전체 기록 초기화</button>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const FINE = 1000;
+const NTFY = 'https://ntfy.sh';        // 무료 공개 실시간 서버
+const LKEY = 'swearFineRecords';
+const RKEY = 'swearFineRoomCode';
+
+let records = JSON.parse(localStorage.getItem(LKEY) || '[]');
+let roomCode = localStorage.getItem(RKEY) || (location.hash.match(/room=([\w가-힣-]+)/)||[])[1] || null;
+if(roomCode) roomCode = decodeURIComponent(roomCode);
+let sel = { name:null, type:null };
+let syncing = false, pollTimer = null;
+
+const $ = s => document.querySelector(s);
+const won = n => n.toLocaleString('ko-KR') + '원';
+function toast(m){ const t=$('#toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2000); }
+function topicOf(code){ return 'swearfine-' + code.replace(/[^\w가-힣]/g,'').slice(0,48); }
+function setDot(cls,text){ const d=$('#dot'); d.className='dot'+(cls?' '+cls:''); $('#statusText').textContent=text; }
+
+// ---- selection ----
+document.querySelectorAll('.opt.name').forEach(b=>b.onclick=()=>{sel.name=b.dataset.name;
+  document.querySelectorAll('.opt.name').forEach(x=>x.classList.toggle('active',x===b)); refreshSubmit();});
+document.querySelectorAll('.opt.type').forEach(b=>b.onclick=()=>{sel.type=b.dataset.type;
+  document.querySelectorAll('.opt.type').forEach(x=>x.classList.toggle('active',x===b)); refreshSubmit();});
+function refreshSubmit(){ $('#submit').disabled=!(sel.name&&sel.type); }
+
+$('#submit').onclick = async ()=>{
+  if(!sel.name||!sel.type) return;
+  const d=new Date();
+  const date=`${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
+  records.push({ id: Date.now()+'-'+Math.random().toString(36).slice(2,7), ts: Date.now(), date, name: sel.name, type: sel.type, amount: FINE });
+  saveLocal(); render();
+  if(roomCode) pushRemote();
+};
+
+$('#reset').onclick = async ()=>{
+  if(confirm('모든 기록을 지울까요? (공유 중이면 친구 화면도 비워집니다)')){
+    records.push({ id:'RESET-'+Date.now(), ts:Date.now(), reset:true });
+    mergeRecords([]); render();          // mergeRecords applies the reset marker
+    if(roomCode) pushRemote();
+  }
+};
+
+function totalFor(name){ return records.filter(r=>!r.reset && r.name===name).reduce((s,r)=>s+r.amount,0); }
+function saveLocal(){ localStorage.setItem(LKEY, JSON.stringify(records)); }
+
+function mergeRecords(incoming){
+  const map = {};
+  [...incoming, ...records].forEach(r=>{ if(r&&r.id) map[r.id]=r; });
+  records = Object.values(map).sort((a,b)=>a.ts-b.ts);
+  // honor the most recent reset marker
+  let lastReset = 0; records.forEach(r=>{ if(r.reset && r.ts>lastReset) lastReset=r.ts; });
+  if(lastReset) records = records.filter(r=> r.reset ? r.ts===lastReset : r.ts>lastReset);
+  saveLocal();
+}
+
+// ---- sync via ntfy pub/sub ----
+async function pushRemote(){
+  if(!roomCode) return;
+  try{
+    const res = await fetch(`${NTFY}/${topicOf(roomCode)}`, { method:'POST', body: JSON.stringify(records) });
+    if(res.ok) setDot('live','실시간 공유 중 · 방: '+roomCode);
+    else setDot('err','전송 오류 (HTTP '+res.status+')');
+  }catch(e){ setDot('err','전송 오류: '+e.message); }
+}
+
+async function pullRemote(){
+  if(!roomCode||syncing) return; syncing=true;
+  try{
+    const res = await fetch(`${NTFY}/${topicOf(roomCode)}/json?poll=1&since=all`, { headers:{'Accept':'application/json'} });
+    if(res.ok){
+      const text = await res.text();
+      const before = JSON.stringify(records);
+      text.trim().split('\n').filter(Boolean).forEach(line=>{
+        try{ const msg=JSON.parse(line); if(msg.event==='message' && msg.message){
+          const arr=JSON.parse(msg.message); if(Array.isArray(arr)) mergeRecords(arr);
+        }}catch(e){}
+      });
+      if(JSON.stringify(records)!==before) render();
+      setDot('live','실시간 공유 중 · 방: '+roomCode);
+    } else setDot('err','동기화 오류 (HTTP '+res.status+')');
+  }catch(e){ setDot('err','동기화 오류: '+e.message); }
+  syncing=false;
+}
+
+function startRoom(code){
+  code=(code||'').trim();
+  if(!code){ toast('방 이름을 정해줘'); return; }
+  roomCode=code; localStorage.setItem(RKEY, roomCode);
+  location.hash='room='+encodeURIComponent(roomCode);
+  renderRoomBar();
+  setDot('','연결 중...');
+  pullRemote().then(pushRemote);
+  if(pollTimer) clearInterval(pollTimer);
+  pollTimer=setInterval(pullRemote, 3000);
+  toast('방 "'+roomCode+'" 연결됨');
+}
+
+function leaveRoom(){
+  roomCode=null; localStorage.removeItem(RKEY); location.hash='';
+  if(pollTimer){ clearInterval(pollTimer); pollTimer=null; }
+  setDot('','혼자 쓰는 중 (동기화 꺼짐)'); renderRoomBar();
+}
+
+function renderRoomBar(){
+  const acts=$('#roomActs'), hint=$('#roomHint');
+  if(roomCode){
+    const link = location.href.split('#')[0]+'#room='+encodeURIComponent(roomCode);
+    acts.innerHTML = `<span class="mini">방 이름: <span class="code">${roomCode}</span></span>
+      <button class="sbtn" id="copyLink">공유 링크 복사</button>
+      <button class="sbtn ghost" id="leaveBtn">나가기</button>`;
+    $('#copyLink').onclick=()=>{ navigator.clipboard.writeText(link).then(()=>toast('링크 복사됨 — 친구에게 보내줘'), ()=>prompt('이 링크를 친구에게 보내줘:', link)); };
+    $('#leaveBtn').onclick=leaveRoom;
+    hint.textContent='친구에게 링크를 보내거나, 같은 방 이름("'+roomCode+'")을 입력하면 연결돼요.';
+  } else {
+    acts.innerHTML = `<input id="roomInput" placeholder="방 이름 (예: 만두찐빵내기)">
+      <button class="sbtn" id="startBtn">공유 시작</button>`;
+    $('#startBtn').onclick=()=>startRoom($('#roomInput').value);
+    $('#roomInput').onkeydown=e=>{ if(e.key==='Enter') startRoom(e.target.value); };
+    hint.textContent='둘이 똑같은 방 이름을 쓰면 실시간으로 연결돼요. 공개 웹주소로 열면 어디서든 동작합니다.';
+  }
+}
+
+function render(){
+  $('#total-만두').textContent = won(totalFor('만두'));
+  $('#total-찐빵').textContent = won(totalFor('찐빵'));
+
+  const tM=totalFor('만두'), tJ=totalFor('찐빵'), max=Math.max(tM,tJ,1);
+  $('#chart').innerHTML = `
+    <div class="bar-col"><div class="bar-val" style="color:#ff8a5c">${won(tM)}</div>
+      <div class="bar mandu" style="height:${Math.max(4,(tM/max)*150)}px"></div><div class="bar-label">🥟 만두</div></div>
+    <div class="bar-col"><div class="bar-val" style="color:#7b6ef6">${won(tJ)}</div>
+      <div class="bar jjinppang" style="height:${Math.max(4,(tJ/max)*150)}px"></div><div class="bar-label"><span class="bun"></span> 찐빵</div></div>`;
+
+  const log=$('#log');
+  const real = records.filter(r=>!r.reset);
+  if(real.length===0){ log.innerHTML='<div class="empty">아직 기록이 없어요 😇</div>'; }
+  else {
+    const cum={};
+    const withCum = real.map(r=>{ cum[r.name]=(cum[r.name]||0)+r.amount; return {...r, cumulative:cum[r.name]}; });
+    const rows = withCum.slice().reverse().map(r=>`
+      <tr><td>${r.date}</td><td>${r.name==='만두'?'🥟':'<span class="bun"></span>'} ${r.name}</td>
+      <td><span class="tag ${r.type==='상스러운 말'?'sang':'back'}">${r.type}</span></td>
+      <td class="amt">${won(r.amount)}</td><td class="amt">${won(r.cumulative)}</td></tr>`).join('');
+    log.innerHTML = `<table><thead><tr><th>날짜</th><th>이름</th><th>종류</th>
+      <th class="amt">적립</th><th class="amt">누적</th></tr></thead><tbody>${rows}</tbody></table>`;
+  }
+}
+
+// ---- init ----
+const hashRoom = (location.hash.match(/room=([\w가-힣-]+)/)||[])[1];
+if(hashRoom){ roomCode = decodeURIComponent(hashRoom); localStorage.setItem(RKEY, roomCode); }
+renderRoomBar();
+render();
+if(roomCode){ setDot('','연결 중...'); pullRemote().then(pushRemote); pollTimer=setInterval(pullRemote, 3000); }
+</script>
+</body>
+</html>
